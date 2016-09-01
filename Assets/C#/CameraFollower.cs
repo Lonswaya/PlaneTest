@@ -17,7 +17,7 @@ public class CameraFollower : MonoBehaviour {
 	}
 	
 	// Update is called once per frame
-	void FixedUpdate () {
+	void Update () {
 		myRigid.velocity = (10 * (parent.position - transform.position) );
 
 
@@ -37,7 +37,7 @@ public class CameraFollower : MonoBehaviour {
 			if (lookAngle.magnitude < 1) {
 				//print (lookAngle.magnitude);
 			}
-			lookAngle = new Vector3 (lookAngle.x, 0, lookAngle.z);
+			lookAngle = new Vector3 (lookAngle.x, lookAngle.y, lookAngle.z);
 			break;
 		case 1:
 			Vector3 targetDir = target.position - transform.position;

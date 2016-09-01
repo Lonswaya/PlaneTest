@@ -19,16 +19,14 @@ public class PlaneController : MonoBehaviour {
 	private bool dead;
 
 
-
+	private float throttle = 0;
 	private float vertAxis = 0;
 	private float horizAxis = 0;
-	private float throttleUp = 0;
-	private float throttleDown = 0;
 	private bool boosting = false;
 	private bool[] firing = new bool[0];
 
 	public void Start() {
-		myWep = this.GetComponent<WeaponController> ();
+		//myWep = this.GetComponent<WeaponController> ();
 		myRigid = transform.GetComponent<Rigidbody>();
 
 	}
@@ -38,10 +36,11 @@ public class PlaneController : MonoBehaviour {
 
 	public void FixedUpdate()
 	{
+		//print("updating");
 		ProcessInputs ();
 
 		if (!dead) {
-			FixInverted ();
+			//FixInverted ();
 			ProcessFlight ();
 			ActivateWeapons ();
 		}
@@ -53,37 +52,36 @@ public class PlaneController : MonoBehaviour {
 		//are we AI or something else
 		switch (InputMethod) {
 		case 0:
-			vertAxis = Input.GetAxis ("Vertical");
-			horizAxis = Input.GetAxis ("Horizontal");
-			brakeForce = Input.GetAxis ("Brakes");
-			driftAxis = Input.GetAxis ("Drift");
-			boosting = (Input.GetAxis ("Boost") > 0);
-			firing = new bool[myWep.weapons.Length];
+			vertAxis = Input.GetAxis ("Vertical") + Input.GetAxis("Mouse Y");
+			horizAxis = Input.GetAxis ("Horizontal") + Input.GetAxis("Mouse X");
+			//brakeForce = Input.GetAxis ("Brakes");
+			//driftAxis = Input.GetAxis ("Drift");
+			boosting = ((Input.GetAxis ("Boost") + Input.GetAxis ("Jump")) > 0);
+			float val = (Input.GetAxis("Throttle"));
+			throttle += val * Time.deltaTime * .5f;
+			if (throttle < 0) throttle = 0;
+			if (throttle > 1) throttle = 1;
+			/*firing = new bool[myWep.weapons.Length];
 			int length = myWep.weapons.Length;
 			for (int index = 0; index < length; index++) {
 				firing[index] = (Input.GetAxis ("Fire" + (index + 1)) > 0);
-			}
+			}*/
 
 			break;
 		case 1:
 			vertAxis = 0;
 			horizAxis = 0;
-			brakeForce = 0;
-			driftAxis = 0;
+			//driftAxis = 0;
 			boosting = false;
 			firing = new bool[0];
 			break;
 		}
 	}
 	public void ActivateWeapons() {
-		myWep.ApplyInput (firing);
+		//myWep.ApplyInput (firing);
 	}
 
-	public void AirMovement(float forwardRotation, float sideRotation) {
-		//print ("airborne");
-		myRigid.AddRelativeTorque (new Vector3 (forwardRotation * Time.deltaTime * 1000000, sideRotation * Time.deltaTime * 1000000, 0));
-		//print (myRigid.rotation);
-	}
+
 
 	public void ProcessFlight() {
 
@@ -95,10 +93,9 @@ public class PlaneController : MonoBehaviour {
 
 		float vertMovement = speed * vertAxis;
 		float horizMovement = speed * horizAxis;
-		//todo change direction
 
-		bool airborne = false;
 
+		AirMovement(vertMovement, horizMovement, throttle);
 
 		timeSinceBoost += Time.deltaTime;
 		if (boosting && timeSinceBoost > timeToBoost) { 
@@ -111,6 +108,32 @@ public class PlaneController : MonoBehaviour {
 
 
 
+	}
+	public void AirMovement(float forwardRotation, float sideRotation, float throttle) {
+		//print ("airborne");
+		myRigid.AddRelativeForce ((Vector3.up * 10 * myRigid.velocity.magnitude +  Vector3.forward * 1300 * throttle) * myRigid.mass * Time.deltaTime);
+
+		//print(myRigid.velocity.magnitude);
+
+	
+
+		if (myRigid.velocity.magnitude > 30) {
+			forwardRotation = forwardRotation / ((myRigid.velocity.magnitude-26)*.25f);
+			sideRotation = sideRotation / ((myRigid.velocity.magnitude-20)*.10f);
+		} else if (myRigid.velocity.magnitude < 30) {
+			forwardRotation = forwardRotation * myRigid.velocity.magnitude/30;
+			sideRotation = sideRotation * myRigid.velocity.magnitude/30;
+
+		} else {
+			//forward rotation stays the same
+		}
+		if (Mathf.Abs(myRigid.angularVelocity.y) > .3f) {
+			forwardRotation = forwardRotation/(Mathf.Abs(myRigid.angularVelocity.y)+.7f);
+			//forwardRotation = (myRigid.angularVelocity.y>0)?(-.3f):(.3f);
+		}
+
+		myRigid.AddRelativeTorque (new Vector3 (forwardRotation * Time.deltaTime * 200, 0, sideRotation * Time.deltaTime * -250));
+		//print (myRigid.rotation);
 	}
 	void Death() {
 		dead = true;
